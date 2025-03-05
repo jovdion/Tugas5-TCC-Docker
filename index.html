@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Catatan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.delete {
+            background-color: #f44336;
+        }
+        button.delete:hover {
+            background-color: #d32f2f;
+        }
+        button.edit {
+            background-color: #2196F3;
+        }
+        button.edit:hover {
+            background-color: #0b7dda;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aplikasi Catatan</h1>
+        
+        <div id="status" class="status"></div>
+        
+        <div id="form-container">
+            <h2 id="form-title">Tambah Catatan Baru</h2>
+            <form id="catatan-form">
+                <input type="hidden" id="catatan-id">
+                <div class="form-group">
+                    <label for="nama">Nama:</label>
+                    <input type="text" id="nama" required>
+                </div>
+                <div class="form-group">
+                    <label for="judul">Judul:</label>
+                    <input type="text" id="judul" required>
+                </div>
+                <div class="form-group">
+                    <label for="isi">Isi Catatan:</label>
+                    <textarea id="isi" rows="5" required></textarea>
+                </div>
+                <div class="form-group">
+                    <button type="submit" id="submit-btn">Simpan</button>
+                    <button type="button" id="cancel-btn" style="display:none;">Batal</button>
+                </div>
+            </form>
+        </div>
+        
+        <h2>Daftar Catatan</h2>
+        <table id="catatan-table">
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Judul</th>
+                    <th>Isi</th>
+                    <th>Tindakan</th>
+                </tr>
+            </thead>
+            <tbody id="catatan-list">
+                <!-- Data will be loaded here dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        window.onload = function () {
+            getCatatan();
+        };
+
+        // DOM Elements
+        const catatanForm = document.getElementById('catatan-form');
+        const catatanIdField = document.getElementById('catatan-id');
+        const namaField = document.getElementById('nama');
+        const judulField = document.getElementById('judul');
+        const isiField = document.getElementById('isi');
+        const catatanList = document.getElementById('catatan-list');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const statusDiv = document.getElementById('status');
+
+        // Event listener for form submission
+        catatanForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (catatanIdField.value) {
+                updateCatatan(catatanIdField.value);
+            } else {
+                addCatatan();
+            }
+        });
+
+        // Cancel button
+        cancelBtn.addEventListener('click', resetForm);
+
+        async function getCatatan() {
+            try {
+                let response = await fetch("http://localhost:3000/catatan");
+                let data = await response.json();
+
+                let list = document.getElementById("catatan-list");
+                list.innerHTML = "";
+
+                data.forEach(item => {
+                    let row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${item.name}</td>
+                        <td>${item.judul}</td>
+                        <td>${item.isi_catatan}</td>
+                        <td>
+                            <button onclick="editCatatan(${item.catatan_id})">Edit</button>
+                            <button onclick="deleteCatatan(${item.catatan_id})">Hapus</button>
+                        </td>
+                    `;
+                    list.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error:", error);
+                showStatus("Gagal memuat catatan", "error");
+            }
+        }
+
+        async function addCatatan() {
+    const nama = namaField.value;
+    const judul = judulField.value;
+    const isi_catatan = isiField.value;
+
+    const data = { name: nama, judul, isi_catatan };
+    console.log("Data yang dikirim:", data); // Debugging
+
+    try {
+        console.log("Mengirim permintaan ke backend..."); // Debugging
+        const response = await fetch("http://localhost:3000/catatan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        console.log("Respons dari backend:", response); // Debugging
+
+        if (response.ok) {
+            showStatus("Catatan berhasil ditambahkan!", "success");
+            resetForm();
+            getCatatan(); // Refresh data
+        } else {
+            const errorData = await response.json(); // Ambil pesan error dari backend
+            showStatus(`Gagal menambahkan catatan: ${errorData.message}`, "error");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        showStatus("Gagal menambahkan catatan", "error");
+    }
+}
+
+        async function updateCatatan(id) {
+            let nama = namaField.value;
+            let judul = judulField.value;
+            let isi_catatan = isiField.value;
+
+            let data = { name: nama, judul, isi_catatan };
+
+            try {
+                let response = await fetch(`http://localhost:3000/catatan-update/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showStatus("Catatan berhasil diperbarui!", "success");
+                    resetForm();
+                    getCatatan();
+                } else {
+                    showStatus("Gagal memperbarui catatan", "error");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                showStatus("Gagal memperbarui catatan", "error");
+            }
+        }
+
+        async function deleteCatatan(id) {
+            let confirmDelete = confirm("Yakin ingin menghapus catatan ini?");
+            if (!confirmDelete) return;
+
+            try {
+                let response = await fetch(`http://localhost:3000/catatan-hapus/${id}`, {
+                    method: "DELETE"
+                });
+
+                if (response.ok) {
+                    showStatus("Catatan berhasil dihapus!", "success");
+                    getCatatan();
+                } else {
+                    showStatus("Gagal menghapus catatan", "error");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                showStatus("Gagal menghapus catatan", "error");
+            }
+        }
+
+
+        function editCatatan(catatan_id) {
+    console.log("catatan_id yang dikirim:", catatan_id); // Debugging
+    fetch(`http://localhost:3000/catatan/${catatan_id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.msg) {
+                showStatus(data.msg, "error");
+                return;
+            }
+
+            formTitle.textContent = 'Edit Catatan';
+            catatanIdField.value = data.catatan_id; // Gunakan catatan_id
+            namaField.value = data.name;
+            judulField.value = data.judul;
+            isiField.value = data.isi_catatan;
+
+            submitBtn.textContent = 'Perbarui';
+            cancelBtn.style.display = 'inline-block';
+
+            document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            showStatus("Gagal memuat catatan", "error");
+        });
+}
+
+        function resetForm() {
+            formTitle.textContent = 'Tambah Catatan Baru';
+            catatanForm.reset();
+            catatanIdField.value = '';
+            submitBtn.textContent = 'Simpan';
+            cancelBtn.style.display = 'none';
+        }
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status';
+            statusDiv.classList.add(type);
+            statusDiv.style.display = 'block';
+
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
