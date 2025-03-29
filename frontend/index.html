@@ -170,7 +170,7 @@
 
         async function getCatatan() {
             try {
-                let response = await fetch("http://localhost:3000/catatan");
+                let response = await fetch(`${BASE_URL}/catatan`);
                 let data = await response.json();
 
                 let list = document.getElementById("catatan-list");
@@ -205,7 +205,7 @@
 
     try {
         console.log("Mengirim permintaan ke backend..."); // Debugging
-        const response = await fetch("http://localhost:3000/catatan", {
+        const response = await fetch(`${BASE_URL}/catatan`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
@@ -235,7 +235,7 @@
             let data = { name: nama, judul, isi_catatan };
 
             try {
-                let response = await fetch(`http://localhost:3000/catatan-update/${id}`, {
+                let response = await fetch(`${BASE_URL}/catatan-update/${id}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
@@ -259,7 +259,7 @@
             if (!confirmDelete) return;
 
             try {
-                let response = await fetch(`http://localhost:3000/catatan-hapus/${id}`, {
+                let response = await fetch(`${BASE_URL}/catatan-hapus/${id}`, {
                     method: "DELETE"
                 });
 
@@ -278,7 +278,7 @@
 
         function editCatatan(catatan_id) {
     console.log("catatan_id yang dikirim:", catatan_id); // Debugging
-    fetch(`http://localhost:3000/catatan/${catatan_id}`)
+    fetch(`${BASE_URL}/catatan/${catatan_id}`)
         .then(response => response.json())
         .then(data => {
             if (data.msg) {
@@ -322,5 +322,7 @@
             }, 3000);
         }
     </script>
+
+    <script src="utils.js"></script>
 </body>
 </html>
